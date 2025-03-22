@@ -26,24 +26,24 @@ pipeline {
             }
         }
         stage('Deploy to EC2') {
-    steps {
-        withCredentials([
-            sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'EC2_KEY_PATH'),
-            string(credentialsId: 'DOCKERHUB_API_KEY', variable: 'DOCKERHUB_TOKEN')
-        ]) {
-            sh '''
-            ssh -o StrictHostKeyChecking=no -i "$EC2_KEY_PATH" ubuntu@$EC2_HOST << 'EOF'
-            sudo systemctl start docker  
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
-            docker pull "$DOCKER_IMAGE"
-            docker stop salarypred || true
-            docker rm salarypred || true
-            docker run -d -p 8501:8501 --name salarypred "$DOCKER_IMAGE"
-            EOF
-            '''
+            steps {
+                withCredentials([
+                    file(credentialsId: 'EC2_KEY', variable: 'EC2_KEY_PATH'),
+                    string(credentialsId: 'DOCKERHUB_API_KEY', variable: 'DOCKERHUB_TOKEN')
+                ]) {
+                    sh '''
+                    chmod 600 "$EC2_KEY_PATH"
+                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY_PATH" ubuntu@$EC2_HOST << 'EOF'
+                    echo $DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USER --password-stdin
+                    docker pull $DOCKER_IMAGE
+                    docker stop salarypred || true
+                    docker rm salarypred || true
+                    docker run -d -p 8501:8501 --name salarypred $DOCKER_IMAGE
+                    EOF
+                    '''
+                }
+            }
         }
-    }
-}
         stage('Testing') {
             steps {
                 echo 'Deployment complete on EC2'
