@@ -33,12 +33,19 @@ pipeline {
         ]) {
             sh '''
             chmod 600 "$EC2_KEY_PATH"
-            ssh -o StrictHostKeyChecking=no -i "$EC2_KEY_PATH" ${EC2_USER}@${EC2_HOST} << ENDSSH
+            echo "Attempting SSH connection with verbose logging..."
+            ssh -v -o StrictHostKeyChecking=no -i "$EC2_KEY_PATH" ${EC2_USER}@${EC2_HOST} << ENDSSH
+            echo "Connected successfully to EC2 instance!"
+            echo "Logging into Docker Hub..."
             docker login -u ${DOCKERHUB_USER} -p ${DOCKERHUB_TOKEN}
+            echo "Pulling latest image..."
             docker pull ${DOCKERHUB_USER}/salarypredapp:v1
+            echo "Stopping and removing existing container..."
             docker stop salarypred || true
             docker rm salarypred || true
+            echo "Starting new container..."
             docker run -d -p 8501:8501 --name salarypred ${DOCKERHUB_USER}/salarypredapp:v1
+            echo "Deployment completed successfully!"
             ENDSSH
             '''
         }
