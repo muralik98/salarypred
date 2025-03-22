@@ -33,20 +33,20 @@ pipeline {
         ]) {
             sh '''
             chmod 600 "$EC2_KEY_PATH"
-            ssh -o StrictHostKeyChecking=no -i "$EC2_KEY_PATH" ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
-            # Login to Docker Hub
-            echo ${DOCKERHUB_TOKEN} | docker login -u ${DOCKERHUB_USER} --password-stdin
+            ssh -o StrictHostKeyChecking=no -i "$EC2_KEY_PATH" ${EC2_USER}@${EC2_HOST} "
+            # Login to Docker Hub - note we're using direct credentials here
+            docker login -u ${DOCKERHUB_USER} -p ${DOCKERHUB_TOKEN}
             
             # Pull the image
             docker pull ${DOCKERHUB_USER}/salarypredapp:v1
             
             # Check if container exists before trying to stop/remove it
-            if [ "$(docker ps -a -q -f name=salarypred)" ]; then
-                echo "Stopping and removing existing container..."
+            if [ \$(docker ps -a -q -f name=salarypred) ]; then
+                echo 'Stopping and removing existing container...'
                 docker stop salarypred
                 docker rm salarypred
             else
-                echo "No existing container found, skipping removal..."
+                echo 'No existing container found, skipping removal...'
             fi
             
             # Run the new container
@@ -54,7 +54,7 @@ pipeline {
             
             # Verify the container is running
             docker ps | grep salarypred
-            ENDSSH
+            "
             '''
         }
     }
